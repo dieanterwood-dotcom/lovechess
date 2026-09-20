@@ -1,9 +1,24 @@
 // LOVE CHESS — Swiss / Dutch-style pairing
 
+let pairingCache=null;
+
+function resetPairingCache(){
+ pairingCache={
+  colorBalance:new Map(),
+  preference:new Map(),
+  strength:new Map(),
+  allowed:new Map(),
+  allocation:new Map()
+ };
+}
+
 function pairingColorBalance(id){
+ if(pairingCache?.colorBalance.has(id))return pairingCache.colorBalance.get(id);
  const p=pairingContext.players[id];
  const c=p?.colors||[];
- return c.filter(x=>x==='W').length-c.filter(x=>x==='B').length;
+ const value=c.reduce((n,x)=>n+(x==='W'?1:x==='B'?-1:0),0);
+ pairingCache?.colorBalance.set(id,value);
+ return value;
 }
 
 /*
@@ -21,24 +36,32 @@ function dutchRank(a,b){
 }
 
 function colourPreference(id){
+ if(pairingCache?.preference.has(id))return pairingCache.preference.get(id);
  const p=pairingContext.players[id];
- if(!p || !p.colors || !p.colors.length)return 'NONE';
+ if(!p || !p.colors || !p.colors.length){
+  pairingCache?.preference.set(id,'NONE');
+  return 'NONE';
+ }
  const c=p.colors, diff=pairingColorBalance(id);
  const last=c[c.length-1], prev=c[c.length-2];
  if(diff < -1 || (last==='B'&&prev==='B'))return 'W';
  if(diff > 1 || (last==='W'&&prev==='W'))return 'B';
- if(diff===-1)return 'W';
- if(diff===1)return 'B';
- return last==='W'?'B':'W';
+ const value=diff===-1?'W':diff===1?'B':(last==='W'?'B':'W');
+ pairingCache?.preference.set(id,value);
+ return value;
 }
 
 function preferenceStrength(id){
+ if(pairingCache?.strength.has(id))return pairingCache.strength.get(id);
  const pref=colourPreference(id);
- if(pref==='NONE')return 0;
+ if(pref==='NONE'){
+  pairingCache?.strength.set(id,0);
+  return 0;
+ }
  const p=pairingContext.players[id], diff=pairingColorBalance(id), c=p?.colors||[];
- if(Math.abs(diff)>1 || (c.length>=2&&c[c.length-1]===c[c.length-2]))return 3;
- if(Math.abs(diff)===1)return 2;
- return 1;
+ const value=(Math.abs(diff)>1 || (c.length>=2&&c[c.length-1]===c[c.length-2]))?3:(Math.abs(diff)===1?2:1);
+ pairingCache?.strength.set(id,value);
+ return value;
 }
 
 function isTopscorer(id){
@@ -77,11 +100,20 @@ function lastFloatDiff(id,roundsAgo){
 function hasBye(id){return pairingContext.previousByes.has(id)}
 
 function pairAbsoluteAllowed(a,b){
+ const key=a<b?a+'|'+b:b+'|'+a;
+ if(pairingCache?.allowed.has(key))return pairingCache.allowed.get(key);
  const A=pairingContext.players[a],B=pairingContext.players[b];
- return !!A&&!!B && !A.played.includes(b) && !B.played.includes(a) && c3Allowed(a,b);
+ const value=!!A&&!!B && !A.played.includes(b) && !B.played.includes(a) && c3Allowed(a,b);
+ pairingCache?.allowed.set(key,value);
+ return value;
 }
 
 function colourAllocation(a,b){
+ const key=a<b?a+'|'+b:b+'|'+a;
+ const cached=pairingCache?.allocation.get(key);
+ if(cached){
+  return cached.a===a ? {white:cached.white,black:cached.black} : {white:cached.black,black:cached.white};
+ }
  const pa=colourPreference(a),pb=colourPreference(b);
  const sa=preferenceStrength(a),sb=preferenceStrength(b);
  const options=[{white:a,black:b},{white:b,black:a}];
@@ -120,11 +152,14 @@ function colourAllocation(a,b){
   if((pairingContext.players[higher]?.tpn||1)%2===0 && best.white===higher)return other;
   if((pairingContext.players[higher]?.tpn||1)%2===1 && best.black===higher)return other;
  }
- return best;
+ const result={a,b,white:best.white,black:best.black};
+ pairingCache?.allocation.set(key,result);
+ return {white:result.white,black:result.black};
 }
 
 function candidateMetrics(pairs,byeId,downIds){
  const downScores=downIds.map(id=>pairingContext.players[id].points).sort((a,b)=>b-a);
+ const topScorers=pairingCache?.topScorers||new Set();
  const c10=[],c11=[]; let c12=0,c13=0,c14=0,c15=0,c16=0,c17=0;
  const c18=[],c19=[],c20=[],c21=[];
  pairs.forEach(([a,b])=>{
@@ -133,7 +168,7 @@ function candidateMetrics(pairs,byeId,downIds){
    const assigned=ca.white===id?'W':'B',pref=colourPreference(id),sp=preferenceStrength(id),c=pairingContext.players[id].colors||[];
    if(pref!=='NONE'&&assigned!==pref)c12++;
    if(sp>=2&&assigned!==pref)c13++;
-   if(isTopscorer(id)||(pairs.some(x=>x[0]===id&&isTopscorer(x[1]))||pairs.some(x=>x[1]===id&&isTopscorer(x[0])))){
+   if(topScorers.has(id)||topScorers.has(a)||topScorers.has(b)){
     const d=pairingColorBalance(id)+(assigned==='W'?1:-1);
     if(d>2||d<-2)c10++;
     if(c.length>=2&&c[c.length-1]===assigned&&c[c.length-2]===assigned)c11++;
@@ -200,8 +235,18 @@ function generatePairingsForSet(ids){
  let best=null,nodes=0;
  const maxNodes=250000;
  const ordered=ids.slice().sort(dutchRank);
+ const allowedChoices=new Map();
+ for(const id of ordered){
+  allowedChoices.set(id,ordered.filter(x=>x!==id&&allowedPair(id,x)));
+ }
+ function hasAllowedPartner(id,restSet){
+  const list=allowedChoices.get(id)||[];
+  for(const x of list)if(restSet.has(x))return true;
+  return false;
+ }
  function rec(rest,pairs,downIds){
   if(++nodes>maxNodes)return;
+  if(best && downIds.length>best.metric[1])return;
   if(!rest.length){
    const metric=candidateMetrics(pairs,null,downIds);
    if(!best||compareMetric(metric,best.metric)<0)best={pairs:pairs.slice(),metric};
@@ -210,7 +255,8 @@ function generatePairingsForSet(ids){
    return;
   }
   const pivot=rest[0];
-  const choices=rest.slice(1).filter(x=>allowedPair(pivot,x));
+  const restSet=new Set(rest);
+  const choices=(allowedChoices.get(pivot)||[]).filter(x=>restSet.has(x));
   choices.sort((a,b)=>{
    const pa=pairingContext.players[a],pb=pairingContext.players[b];
    const da=Math.abs(pa.points-pairingContext.players[pivot].points),db=Math.abs(pb.points-pairingContext.players[pivot].points);
@@ -227,6 +273,9 @@ function generatePairingsForSet(ids){
 }
 
 function swissPairing(ids){
+ resetPairingCache();
+ const topIds=Object.keys(pairingContext.players).filter(id=>isTopscorer(id));
+ pairingCache.topScorers=new Set(topIds);
  // Dutch-style global bracket search. Pairs may be same-score or adjacent-score;
  // the optimizer minimizes floaters first, then applies C5-C21 in priority order.
  if(!ids.length)return {pairs:[],cost:0};
