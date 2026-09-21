@@ -22,7 +22,6 @@ function about(){
      <div class="about-grid about-grid-3">
        <article class="about-card"><img class="about-card-photo" src="photos/about-evenings.jpg" alt="Шахматный вечер LOVE CHESS" loading="lazy"><div class="about-icon">♟</div><h3>Шахматные вечера</h3><p>Шахматные вечера для всех желающих вне зависимости уровня игры, в барах, кофейнях, фуд-кортах и городских пространствах. Формат строится вокруг игры, новых знакомств и общения. Собственная рейтинговая система, которая сохраняет историю игрока.</p></article>
        <article class="about-card"><img class="about-card-photo" src="photos/about-fshr.jpg" alt="Турнир ФШР LOVE CHESS" loading="lazy"><div class="about-icon">♜</div><h3>Турниры ФШР</h3><p>Официальные турниры с обсчетом рейтинга ФШР.</p></article>
-       <article class="about-card"><img class="about-card-photo" src="photos/about-learning.jpg" alt="Обучение шахматам LOVE CHESS" loading="lazy"><div class="about-icon">♝</div><h3>Обучение для детей и взрослых</h3><p>Обучаем игре в шахматы детей и взрослых, новичков и любителей</p></article>
      </div>
    </section>
 
