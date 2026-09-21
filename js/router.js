@@ -6,6 +6,7 @@ function route(r){
   if(r==='privacy')return privacyPolicy();
   if(r==='organizer')return organizerLogin();
   if(r==='profile')return profileHome();
+  if(r==='register')return registerProfile();
   const pm=r.match(/^profile\/(.+)$/);
   if(pm)return profile(pm[1]);
   if(r==='clock'){chessClock();return;}
@@ -16,5 +17,4 @@ function route(r){
   if(tm)return tournament(tm[1]);
   return schedule();
 }
-
 
