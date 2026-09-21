@@ -1,4 +1,4 @@
-// LOVE CHESS вЂ” authentication
+// LOVE CHESS — authentication
 
 function getCurrentPlayer(){
   if(apiCurrentUser?.id)return apiCurrentUser.id;
