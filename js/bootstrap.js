@@ -1,4 +1,4 @@
-// LOVE CHESS вЂ” application bootstrap
+// LOVE CHESS — application bootstrap
 
 // Legacy data migrations / defaults. Kept here so every feature module is loaded first.
 ensurePlayerNicknames();
