@@ -8,13 +8,13 @@ export function validateCredentials({ username, password, nickname }) {
   const normalizedUsername = String(username || '').trim().toLowerCase();
   const normalizedNickname = String(nickname || '').trim();
   if (!/^[a-z0-9._-]{3,32}$/.test(normalizedUsername)) {
-    throw new Error('Р›РѕРіРёРЅ: РѕС‚ 3 РґРѕ 32 СЃРёРјРІРѕР»РѕРІ, Р»Р°С‚РёРЅРёС†Р°, С†РёС„СЂС‹, С‚РѕС‡РєР°, РґРµС„РёСЃ РёР»Рё _.');
+    throw new Error('Логин: от 3 до 32 символов, латиница, цифры, точка, дефис или _.');
   }
   if (typeof password !== 'string' || password.length < 10 || password.length > 128) {
-    throw new Error('РџР°СЂРѕР»СЊ РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ РѕС‚ 10 РґРѕ 128 СЃРёРјРІРѕР»РѕРІ.');
+    throw new Error('Пароль должен содержать от 10 до 128 символов.');
   }
   if (normalizedNickname && (normalizedNickname.length < 2 || normalizedNickname.length > 40)) {
-    throw new Error('РќРёРє РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ РѕС‚ 2 РґРѕ 40 СЃРёРјРІРѕР»РѕРІ.');
+    throw new Error('Ник должен содержать от 2 до 40 символов.');
   }
   return { username: normalizedUsername, nickname: normalizedNickname };
 }
