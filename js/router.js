@@ -1,8 +1,9 @@
-// LOVE CHESS — routing
+// LOVE CHESS вЂ” routing
 
 function route(r){
   if(typeof r !== 'string') r='schedule';
   if(r==='about')return about();
+  if(r==='privacy')return privacyPolicy();
   if(r==='organizer')return organizerLogin();
   if(r==='profile')return profileHome();
   const pm=r.match(/^profile\/(.+)$/);
