@@ -6,6 +6,7 @@
   "packageManager": "pnpm@11.19.0",
   "scripts": {
     "start": "node server/index.js",
+    "create-organizer": "node server/create-organizer.js",
     "test": "node --test"
   },
   "dependencies": {
