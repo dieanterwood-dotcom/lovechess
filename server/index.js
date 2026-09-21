@@ -47,7 +47,7 @@ async function handleApi(request, response, url) {
     response.setHeader('Set-Cookie',sessionCookie(token)); return json(response,200,{user:await currentUser({headers:{cookie:`lovechess_session=${token}`}})});
   }
   if (request.method === 'POST' && url.pathname === '/api/auth/logout') { const token=cookieValue(request,'lovechess_session'); if(token) await pool.query('DELETE FROM sessions WHERE token_hash=$1',[hashToken(token)]); response.setHeader('Set-Cookie',expiredCookie); return json(response,204,{}); }
-  if (request.method === 'GET' && url.pathname === '/api/players') { const { rows }=await pool.query('SELECT nickname,rating,games,wins,draws,losses FROM players WHERE is_public=TRUE ORDER BY rating DESC,nickname'); return json(response,200,{players:rows}); }
+  if (request.method === 'GET' && url.pathname === '/api/players') { const { rows }=await pool.query('SELECT id,nickname,rating,games,wins,draws,losses FROM players WHERE is_public=TRUE ORDER BY rating DESC,nickname'); return json(response,200,{players:rows}); }
   return json(response,404,{error:'Not found'});
 }
 
