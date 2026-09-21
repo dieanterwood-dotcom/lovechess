@@ -1,4 +1,4 @@
-// LOVE CHESS вЂ” routing
+// LOVE CHESS — routing
 
 function route(r){
   if(typeof r !== 'string') r='schedule';
