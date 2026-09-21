@@ -29,20 +29,20 @@ async function handleApi(request, response, url) {
   if (request.method === 'GET' && url.pathname === '/api/auth/me') return json(response, 200, { user: await currentUser(request) });
   if (request.method === 'POST' && url.pathname === '/api/auth/register') {
     const input = await readJson(request);
-    if (input.acceptPrivacy !== true) return json(response, 400, { error:'РќСѓР¶РЅРѕ РїСЂРёРЅСЏС‚СЊ РїРѕР»РёС‚РёРєСѓ РєРѕРЅС„РёРґРµРЅС†РёР°Р»СЊРЅРѕСЃС‚Рё.' });
+    if (input.acceptPrivacy !== true) return json(response, 400, { error:'Нужно принять политику конфиденциальности.' });
     const { username, nickname } = validateCredentials(input);
-    if (!nickname) return json(response, 400, { error:'РЈРєР°Р¶РёС‚Рµ РЅРёРє.' });
+    if (!nickname) return json(response, 400, { error:'Укажите ник.' });
     const id=randomUUID(), passwordHash=await hashPassword(input.password);
     try {
       await transaction(async client => { await client.query('INSERT INTO users (id, username, password_hash, privacy_accepted_at) VALUES ($1,$2,$3,NOW())', [id,username,passwordHash]); await client.query('INSERT INTO players (id,nickname) VALUES ($1,$2)', [id,nickname]); });
-    } catch (error) { if (error.code === '23505') return json(response,409,{error:'Р­С‚РѕС‚ Р»РѕРіРёРЅ РёР»Рё РЅРёРє СѓР¶Рµ Р·Р°РЅСЏС‚.'}); throw error; }
+    } catch (error) { if (error.code === '23505') return json(response,409,{error:'Этот логин или ник уже занят.'}); throw error; }
     const token=createSessionToken(); await pool.query("INSERT INTO sessions (token_hash,user_id,expires_at) VALUES ($1,$2,NOW()+($3 || ' days')::interval)",[hashToken(token),id,String(config.sessionTtlDays)]);
     response.setHeader('Set-Cookie', sessionCookie(token)); return json(response,201,{user:await currentUser({headers:{cookie:`lovechess_session=${token}`}})});
   }
   if (request.method === 'POST' && url.pathname === '/api/auth/login') {
     const input=await readJson(request), username=String(input.username||'').trim().toLowerCase();
     const { rows }=await pool.query('SELECT id,password_hash FROM users WHERE username=$1 AND deleted_at IS NULL',[username]);
-    if (!rows[0] || !await verifyPassword(String(input.password||''),rows[0].password_hash)) return json(response,401,{error:'РќРµРІРµСЂРЅС‹Р№ Р»РѕРіРёРЅ РёР»Рё РїР°СЂРѕР»СЊ.'});
+    if (!rows[0] || !await verifyPassword(String(input.password||''),rows[0].password_hash)) return json(response,401,{error:'Неверный логин или пароль.'});
     const token=createSessionToken(); await pool.query("INSERT INTO sessions (token_hash,user_id,expires_at) VALUES ($1,$2,NOW()+($3 || ' days')::interval)",[hashToken(token),rows[0].id,String(config.sessionTtlDays)]);
     response.setHeader('Set-Cookie',sessionCookie(token)); return json(response,200,{user:await currentUser({headers:{cookie:`lovechess_session=${token}`}})});
   }
